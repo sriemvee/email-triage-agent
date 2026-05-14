@@ -1,4 +1,6 @@
+import os
 import unittest
+from unittest.mock import patch
 
 from email_triage_agent.config import EmailTriageConfig
 
@@ -34,6 +36,19 @@ class EmailTriageConfigTests(unittest.TestCase):
     def test_from_env_requires_mandatory_values(self) -> None:
         with self.assertRaisesRegex(ValueError, "Missing required"):
             EmailTriageConfig.from_env({})
+
+    def test_from_env_does_not_fall_back_when_given_empty_mapping(self) -> None:
+        with patch.dict(
+            os.environ,
+            {
+                "EMAIL_TRIAGE_IMAP_HOST": "imap.example.com",
+                "EMAIL_TRIAGE_EMAIL_ADDRESS": "user@example.com",
+                "EMAIL_TRIAGE_EMAIL_PASSWORD": "secret",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(ValueError, "Missing required"):
+                EmailTriageConfig.from_env({})
 
 
 if __name__ == "__main__":
