@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from email.utils import parseaddr
 from datetime import UTC, datetime
+from email.utils import parseaddr
 
 from email_triage_agent.config import EmailTriageConfig
 from email_triage_agent.models import EmailMessageSummary, ReviewPlan, TriageDecision
@@ -17,6 +18,16 @@ DEFAULT_IRRELEVANT_KEYWORDS = (
 )
 AUTOMATED_SENDER_MARKERS = ("noreply", "no-reply", "newsletter", "mailer-daemon", "donotreply")
 LOW_VALUE_LABELS = ("CATEGORY_FORUMS", "CATEGORY_PROMOTIONS", "CATEGORY_UPDATES")
+
+
+def is_sender_protected(sender: str, config: EmailTriageConfig) -> bool:
+    _, sender_address = parseaddr(sender)
+    normalized_sender = sender_address.lower().strip() or sender.lower().strip()
+    sender_domain = normalized_sender.rsplit("@", 1)[1] if "@" in normalized_sender else ""
+    return (
+        normalized_sender in config.protected_senders
+        or sender_domain in config.protected_domains
+    )
 
 
 def score_message(
@@ -92,6 +103,24 @@ def build_review_plan(
     messages: list[EmailMessageSummary], config: EmailTriageConfig
 ) -> ReviewPlan:
     decisions = [classify_message(message, config) for message in messages]
+    candidates: list[TriageDecision] = []
+    for message in messages:
+        if is_sender_protected(message.sender, config):
+            continue
+        score, reasons = score_message(message, config)
+        if score < 2:
+            continue
+        candidates.append(
+            TriageDecision(
+                uid=message.uid,
+                subject=message.subject,
+                sender=message.sender,
+                date=message.date,
+                preview=message.preview,
+                score=score,
+                reasons=reasons,
+            )
+        )
 
     return ReviewPlan(
         generated_at=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),

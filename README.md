@@ -73,6 +73,9 @@ All OAuth values are supplied through environment variables only. Do not hardcod
 | `EMAIL_TRIAGE_PROTECT_UNREAD` | No | Protect unread messages from cleanup, defaults to `true` |
 | `EMAIL_TRIAGE_IRRELEVANT_SENDERS` | No | Comma-separated sender rules to strongly down-rank |
 | `EMAIL_TRIAGE_IRRELEVANT_KEYWORDS` | No | Comma-separated subject/snippet keywords to down-rank |
+| `EMAIL_TRIAGE_IRRELEVANT_KEYWORDS` | No | Comma-separated subject/body keywords to down-rank |
+| `EMAIL_TRIAGE_PROTECTED_SENDERS` | No | Comma-separated exact sender email allowlist (never triaged/deleted) |
+| `EMAIL_TRIAGE_PROTECTED_DOMAINS` | No | Comma-separated sender domain allowlist (never triaged/deleted) |
 
 ## Quick start
 
@@ -118,6 +121,7 @@ PYTHONPATH=src python -m email_triage_agent apply-review \
 - Cleanup requires both the saved review plan and its confirmation token
 - The review token is recomputed from plan contents to detect tampering
 - Cleanup moves messages to Gmail trash and never permanently deletes them
+- Protected senders/domains are always skipped during triage and apply-review
 
 ## Running tests
 

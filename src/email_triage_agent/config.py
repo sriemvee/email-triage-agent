@@ -46,6 +46,8 @@ class EmailTriageConfig:
     protect_unread: bool = True
     irrelevant_senders: tuple[str, ...] = ()
     irrelevant_keywords: tuple[str, ...] = ()
+    protected_senders: tuple[str, ...] = ()
+    protected_domains: tuple[str, ...] = ()
 
     @classmethod
     def from_env(
@@ -61,6 +63,13 @@ class EmailTriageConfig:
         ]
         if require_refresh_token:
             required.append("EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN")
+    def from_env(cls, environ: Mapping[str, str] | None = None) -> "EmailTriageConfig":
+        env = os.environ if environ is None else environ
+        required = (
+            "EMAIL_TRIAGE_IMAP_HOST",
+            "EMAIL_TRIAGE_EMAIL_ADDRESS",
+            "EMAIL_TRIAGE_EMAIL_PASSWORD",
+        )
         missing = [name for name in required if not env.get(name)]
         if missing:
             raise ValueError(
@@ -85,4 +94,6 @@ class EmailTriageConfig:
             ),
             irrelevant_senders=_parse_csv(env.get("EMAIL_TRIAGE_IRRELEVANT_SENDERS")),
             irrelevant_keywords=_parse_csv(env.get("EMAIL_TRIAGE_IRRELEVANT_KEYWORDS")),
+            protected_senders=_parse_csv(env.get("EMAIL_TRIAGE_PROTECTED_SENDERS")),
+            protected_domains=_parse_csv(env.get("EMAIL_TRIAGE_PROTECTED_DOMAINS")),
         )

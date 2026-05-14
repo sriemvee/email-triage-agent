@@ -15,6 +15,8 @@ class TriageTests(unittest.TestCase):
             allowlist_domains=("trusted.com",),
             irrelevant_senders=("deals@example.com",),
             irrelevant_keywords=("coupon",),
+            protected_senders=("boss@example.com",),
+            protected_domains=("important.com",),
         )
 
     def test_score_message_flags_irrelevant_email(self) -> None:
@@ -95,6 +97,28 @@ class TriageTests(unittest.TestCase):
             {decision.uid: decision.decision for decision in plan.decisions},
             {"42": "trash_candidate", "43": "review", "44": "keep"},
         )
+
+    def test_build_review_plan_excludes_protected_senders(self) -> None:
+        messages = [
+            EmailMessageSummary(
+                uid="44",
+                subject="Urgent: company all-hands",
+                sender="CEO <ceo@important.com>",
+                date="Thu, 14 May 2026 12:00:00 +0000",
+                preview="Please confirm attendance. unsubscribe footer from sender platform.",
+            ),
+            EmailMessageSummary(
+                uid="45",
+                subject="Discount offer",
+                sender="deals@example.com",
+                date="Thu, 14 May 2026 12:10:00 +0000",
+                preview="promo coupon unsubscribe",
+            ),
+        ]
+
+        plan = build_review_plan(messages, self.config)
+
+        self.assertEqual([candidate.uid for candidate in plan.delete_candidates], ["45"])
 
 
 if __name__ == "__main__":
