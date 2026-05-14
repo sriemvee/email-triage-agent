@@ -22,7 +22,7 @@ class TriageTests(unittest.TestCase):
             subject="Exclusive coupon offer",
             sender="deals@example.com",
             date="Thu, 14 May 2026 10:00:00 +0000",
-            preview="Unsubscribe for more promo email",
+            preview="Unsubscribe from more promo email",
         )
 
         score, reasons = score_message(message, self.config)
@@ -37,7 +37,7 @@ class TriageTests(unittest.TestCase):
                 subject="Exclusive coupon offer",
                 sender="deals@example.com",
                 date="Thu, 14 May 2026 10:00:00 +0000",
-                preview="Unsubscribe for more promo email",
+                preview="Unsubscribe from more promo email",
             ),
             EmailMessageSummary(
                 uid="43",

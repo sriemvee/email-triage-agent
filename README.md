@@ -46,7 +46,7 @@ Copy `.env.example` to `.env` or export the variables in your shell.
 ## Quick start
 
 ```bash
-cd /home/runner/work/email-triage-agent/email-triage-agent
+cd email-triage-agent
 python -m venv .venv
 . .venv/bin/activate
 pip install -e .
@@ -85,6 +85,6 @@ PYTHONPATH=src python -m email_triage_agent apply-review \
 ## Running tests
 
 ```bash
-cd /home/runner/work/email-triage-agent/email-triage-agent
+cd email-triage-agent
 PYTHONPATH=src python -m unittest discover -s tests -p 'test*.py'
 ```
