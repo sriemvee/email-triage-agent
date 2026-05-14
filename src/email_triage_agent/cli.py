@@ -19,7 +19,13 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     auth_parser = subparsers.add_parser(
-        "gmail-auth", help="Run a local Gmail OAuth flow and print a refresh token."
+        "gmail-auth", help="Run a local Gmail OAuth flow and save a refresh token to an env file."
+    )
+    auth_parser.add_argument(
+        "--env-path",
+        type=Path,
+        default=Path(".env"),
+        help="Path to the env file to update with EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN.",
     )
     auth_parser.set_defaults(handler=handle_gmail_auth)
 
@@ -60,12 +66,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def handle_gmail_auth(args: argparse.Namespace) -> int:
-    del args
     config = EmailTriageConfig.from_env(require_refresh_token=False)
     refresh_token = run_gmail_oauth_flow(config)
+    _upsert_env_value(args.env_path, "EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN", refresh_token)
     print("Gmail OAuth completed.")
-    print("Add this to your environment or .env file:")
-    print(f"EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN={refresh_token}")
+    print(f"Saved EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN to {args.env_path}.")
     return 0
 
 
@@ -103,7 +108,9 @@ def handle_apply_review(args: argparse.Namespace) -> int:
         return 0
 
     if not args.apply:
-        print(f"Dry-run: would move {len(plan.trash_candidates)} messages to Gmail trash.")
+        print(
+            f"Dry-run: would move {_format_message_count(len(plan.trash_candidates))} to Gmail trash."
+        )
         for candidate in plan.trash_candidates:
             print(f"  - UID {candidate.uid}: {candidate.subject} | {candidate.sender}")
         print("Re-run with --apply once you are ready to move these messages to trash.")
@@ -112,7 +119,7 @@ def handle_apply_review(args: argparse.Namespace) -> int:
     config = EmailTriageConfig.from_env()
     client = GmailEmailClient(config)
     trashed = client.trash_messages([candidate.uid for candidate in plan.trash_candidates])
-    print(f"Moved {trashed} messages to Gmail trash from {config.mailbox}.")
+    print(f"Moved {_format_message_count(trashed)} to Gmail trash from {config.mailbox}.")
     return 0
 
 
@@ -121,6 +128,31 @@ def _default_plan_path() -> Path:
 
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     return Path("review-plans") / f"review-plan-{timestamp}.json"
+
+
+def _format_message_count(count: int) -> str:
+    suffix = "message" if count == 1 else "messages"
+    return f"{count} {suffix}"
+
+
+def _upsert_env_value(path: Path, key: str, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    existing_lines: list[str] = []
+    if path.exists():
+        existing_lines = path.read_text(encoding="utf-8").splitlines()
+
+    updated_lines: list[str] = []
+    replaced = False
+    for line in existing_lines:
+        if line.startswith(f"{key}="):
+            updated_lines.append(f"{key}={value}")
+            replaced = True
+        else:
+            updated_lines.append(line)
+    if not replaced:
+        updated_lines.append(f"{key}={value}")
+
+    path.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
 
 
 def main() -> int:

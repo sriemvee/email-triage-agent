@@ -49,10 +49,12 @@ Copy `.env.example` to `.env` or export the variables in your shell.
    PYTHONPATH=src python -m email_triage_agent gmail-auth
    ```
 
-6. Add the printed refresh token to your shell or `.env`:
+   By default, the command updates `.env` in place. You can target a different file with `--env-path /path/to/.env`.
+
+6. Confirm that your env file now includes the refresh token:
 
    ```bash
-   export EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN=your-refresh-token
+   EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN=your-refresh-token
    ```
 
 All OAuth values are supplied through environment variables only. Do not hardcode credentials into the repository.

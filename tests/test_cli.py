@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from email_triage_agent.cli import build_parser, handle_apply_review
+from email_triage_agent.cli import build_parser, handle_apply_review, handle_gmail_auth
 from email_triage_agent.config import EmailTriageConfig
 from email_triage_agent.models import ReviewPlan, TriageDecision
 from email_triage_agent.review import save_review_plan
@@ -63,7 +63,7 @@ class CliApplyReviewTests(unittest.TestCase):
 
         self.assertEqual(result, 0)
         client_class.return_value.trash_messages.assert_not_called()
-        self.assertIn("Dry-run: would move 1 messages", stdout.getvalue())
+        self.assertIn("Dry-run: would move 1 message", stdout.getvalue())
 
     def test_apply_review_requires_apply_flag_to_trash(self) -> None:
         with TemporaryDirectory() as tmpdir:
@@ -89,7 +89,24 @@ class CliApplyReviewTests(unittest.TestCase):
 
         self.assertEqual(result, 0)
         client_class.return_value.trash_messages.assert_called_once_with(["101"])
-        self.assertIn("Moved 1 messages to Gmail trash", stdout.getvalue())
+        self.assertIn("Moved 1 message to Gmail trash", stdout.getvalue())
+
+    def test_gmail_auth_saves_refresh_token_without_printing_it(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            env_path = Path(tmpdir) / ".env"
+            args = build_parser().parse_args(["gmail-auth", "--env-path", str(env_path)])
+
+            with patch("email_triage_agent.cli.EmailTriageConfig.from_env", return_value=self.config), patch(
+                "email_triage_agent.cli.run_gmail_oauth_flow", return_value="refresh-token-value"
+            ), patch("sys.stdout", new_callable=io.StringIO) as stdout:
+                result = handle_gmail_auth(args)
+
+            self.assertEqual(result, 0)
+            self.assertIn(
+                "EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN=refresh-token-value",
+                env_path.read_text(encoding="utf-8"),
+            )
+            self.assertNotIn("refresh-token-value", stdout.getvalue())
 
 
 if __name__ == "__main__":
