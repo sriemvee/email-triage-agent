@@ -42,6 +42,8 @@ Copy `.env.example` to `.env` or export the variables in your shell.
 | `EMAIL_TRIAGE_MAX_MESSAGES` | No | Number of recent messages to inspect, defaults to `50` |
 | `EMAIL_TRIAGE_IRRELEVANT_SENDERS` | No | Comma-separated sender rules to strongly down-rank |
 | `EMAIL_TRIAGE_IRRELEVANT_KEYWORDS` | No | Comma-separated subject/body keywords to down-rank |
+| `EMAIL_TRIAGE_PROTECTED_SENDERS` | No | Comma-separated exact sender email allowlist (never triaged/deleted) |
+| `EMAIL_TRIAGE_PROTECTED_DOMAINS` | No | Comma-separated sender domain allowlist (never triaged/deleted) |
 
 ## Quick start
 
@@ -81,6 +83,7 @@ PYTHONPATH=src python -m email_triage_agent apply-review \
 - Deletion is a separate command
 - Deletion requires both the saved review plan and its confirmation token
 - The review token is recomputed from plan contents to detect tampering
+- Protected senders/domains are always skipped during triage and apply-review
 
 ## Running tests
 
