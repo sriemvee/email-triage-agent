@@ -8,7 +8,10 @@ version = "0.1.0"
 description = "A lightweight review-first email triage starter."
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "google-api-python-client==2.196.0",
+    "google-auth-oauthlib==1.4.0",
+]
 
 [project.scripts]
 email-triage-agent = "email_triage_agent.cli:main"
@@ -18,4 +21,3 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-

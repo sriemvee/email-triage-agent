@@ -9,7 +9,13 @@ class EmailMessageSummary:
     subject: str
     sender: str
     date: str
-    preview: str
+    snippet: str
+    labels: tuple[str, ...] = ()
+    is_unread: bool = False
+
+    @property
+    def preview(self) -> str:
+        return self.snippet
 
 
 @dataclass(frozen=True)
@@ -18,9 +24,15 @@ class TriageDecision:
     subject: str
     sender: str
     date: str
-    preview: str
-    score: int
+    snippet: str
+    labels: tuple[str, ...]
+    is_unread: bool
+    decision: str
     reasons: tuple[str, ...]
+
+    @property
+    def preview(self) -> str:
+        return self.snippet
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -32,8 +44,10 @@ class TriageDecision:
             subject=str(payload["subject"]),
             sender=str(payload["sender"]),
             date=str(payload["date"]),
-            preview=str(payload["preview"]),
-            score=int(payload["score"]),
+            snippet=str(payload.get("snippet", payload.get("preview", ""))),
+            labels=tuple(str(item) for item in payload.get("labels", [])),
+            is_unread=bool(payload.get("is_unread", False)),
+            decision=str(payload.get("decision", "trash_candidate")),
             reasons=tuple(str(item) for item in payload["reasons"]),
         )
 
@@ -43,28 +57,37 @@ class ReviewPlan:
     generated_at: str
     mailbox: str
     scanned_count: int
-    delete_candidates: tuple[TriageDecision, ...]
+    decisions: tuple[TriageDecision, ...]
     confirmation_token: str = ""
+
+    @property
+    def delete_candidates(self) -> tuple[TriageDecision, ...]:
+        return self.trash_candidates
+
+    @property
+    def trash_candidates(self) -> tuple[TriageDecision, ...]:
+        return tuple(
+            decision for decision in self.decisions if decision.decision == "trash_candidate"
+        )
 
     def to_dict(self) -> dict[str, object]:
         return {
             "generated_at": self.generated_at,
             "mailbox": self.mailbox,
             "scanned_count": self.scanned_count,
-            "delete_candidates": [candidate.to_dict() for candidate in self.delete_candidates],
+            "decisions": [decision.to_dict() for decision in self.decisions],
             "confirmation_token": self.confirmation_token,
         }
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> "ReviewPlan":
-        raw_candidates = payload.get("delete_candidates", [])
+        raw_candidates = payload.get("decisions", payload.get("delete_candidates", []))
         return cls(
             generated_at=str(payload["generated_at"]),
             mailbox=str(payload["mailbox"]),
             scanned_count=int(payload["scanned_count"]),
-            delete_candidates=tuple(
+            decisions=tuple(
                 TriageDecision.from_dict(candidate) for candidate in raw_candidates
             ),
             confirmation_token=str(payload.get("confirmation_token", "")),
         )
-
