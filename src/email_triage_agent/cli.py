@@ -144,7 +144,8 @@ def _upsert_env_value(path: Path, key: str, value: str) -> None:
     updated_lines: list[str] = []
     replaced = False
     for line in existing_lines:
-        if line.startswith(f"{key}="):
+        current_key, separator, _ = line.partition("=")
+        if separator and current_key == key:
             updated_lines.append(f"{key}={value}")
             replaced = True
         else:
