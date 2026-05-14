@@ -15,6 +15,8 @@ class EmailTriageConfigTests(unittest.TestCase):
                 "EMAIL_TRIAGE_MAX_MESSAGES": "25",
                 "EMAIL_TRIAGE_IRRELEVANT_SENDERS": "newsletter@example.com, deals@example.com ",
                 "EMAIL_TRIAGE_IRRELEVANT_KEYWORDS": "promo, offer ",
+                "EMAIL_TRIAGE_PROTECTED_SENDERS": "boss@example.com, ceo@example.com ",
+                "EMAIL_TRIAGE_PROTECTED_DOMAINS": "important.com, internal.example.com ",
             }
         )
 
@@ -26,6 +28,8 @@ class EmailTriageConfigTests(unittest.TestCase):
             ("newsletter@example.com", "deals@example.com"),
         )
         self.assertEqual(config.irrelevant_keywords, ("promo", "offer"))
+        self.assertEqual(config.protected_senders, ("boss@example.com", "ceo@example.com"))
+        self.assertEqual(config.protected_domains, ("important.com", "internal.example.com"))
 
     def test_from_env_requires_mandatory_values(self) -> None:
         with self.assertRaisesRegex(ValueError, "Missing required"):
@@ -34,4 +38,3 @@ class EmailTriageConfigTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

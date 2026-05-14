@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from email.utils import parseaddr
 
 from email_triage_agent.config import EmailTriageConfig
 from email_triage_agent.models import EmailMessageSummary, ReviewPlan, TriageDecision
@@ -15,6 +16,16 @@ DEFAULT_IRRELEVANT_KEYWORDS = (
     "promotion",
 )
 AUTOMATED_SENDER_MARKERS = ("noreply", "no-reply", "newsletter", "mailer-daemon", "donotreply")
+
+
+def is_sender_protected(sender: str, config: EmailTriageConfig) -> bool:
+    _, sender_address = parseaddr(sender)
+    normalized_sender = sender_address.lower().strip() or sender.lower().strip()
+    sender_domain = normalized_sender.rsplit("@", 1)[1] if "@" in normalized_sender else ""
+    return (
+        normalized_sender in config.protected_senders
+        or sender_domain in config.protected_domains
+    )
 
 
 def score_message(
@@ -52,6 +63,8 @@ def build_review_plan(
 ) -> ReviewPlan:
     candidates: list[TriageDecision] = []
     for message in messages:
+        if is_sender_protected(message.sender, config):
+            continue
         score, reasons = score_message(message, config)
         if score < 2:
             continue
@@ -73,4 +86,3 @@ def build_review_plan(
         scanned_count=len(messages),
         delete_candidates=tuple(candidates),
     )
-

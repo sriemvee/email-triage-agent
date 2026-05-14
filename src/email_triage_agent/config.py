@@ -33,6 +33,8 @@ class EmailTriageConfig:
     max_messages: int = 50
     irrelevant_senders: tuple[str, ...] = ()
     irrelevant_keywords: tuple[str, ...] = ()
+    protected_senders: tuple[str, ...] = ()
+    protected_domains: tuple[str, ...] = ()
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "EmailTriageConfig":
@@ -62,5 +64,6 @@ class EmailTriageConfig:
             ),
             irrelevant_senders=_parse_csv(env.get("EMAIL_TRIAGE_IRRELEVANT_SENDERS")),
             irrelevant_keywords=_parse_csv(env.get("EMAIL_TRIAGE_IRRELEVANT_KEYWORDS")),
+            protected_senders=_parse_csv(env.get("EMAIL_TRIAGE_PROTECTED_SENDERS")),
+            protected_domains=_parse_csv(env.get("EMAIL_TRIAGE_PROTECTED_DOMAINS")),
         )
-

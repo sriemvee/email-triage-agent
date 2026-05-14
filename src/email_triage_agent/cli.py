@@ -11,7 +11,7 @@ from email_triage_agent.review import (
     save_review_plan,
     validate_review_plan,
 )
-from email_triage_agent.triage import build_review_plan
+from email_triage_agent.triage import build_review_plan, is_sender_protected
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -82,7 +82,21 @@ def handle_apply_review(args: argparse.Namespace) -> int:
 
     config = EmailTriageConfig.from_env()
     client = ImapEmailClient(config)
-    deleted = client.delete_messages([candidate.uid for candidate in plan.delete_candidates])
+    protected_candidates = []
+    to_delete: list[str] = []
+    for candidate in plan.delete_candidates:
+        if is_sender_protected(candidate.sender, config):
+            protected_candidates.append(candidate)
+            continue
+        to_delete.append(candidate.uid)
+    if protected_candidates:
+        print(
+            f"Skipped {len(protected_candidates)} protected messages based on current allowlist settings."
+        )
+    if not to_delete:
+        print("No deletable candidates remain after applying protection rules.")
+        return 0
+    deleted = client.delete_messages(to_delete)
     print(f"Deleted {deleted} messages from {config.mailbox}.")
     return 0
 
@@ -98,4 +112,3 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
     return args.handler(args)
-
