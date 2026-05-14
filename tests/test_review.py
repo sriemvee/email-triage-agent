@@ -13,14 +13,16 @@ class ReviewPlanTests(unittest.TestCase):
             generated_at="2026-05-14T10:00:00Z",
             mailbox="INBOX",
             scanned_count=3,
-            delete_candidates=(
+            decisions=(
                 TriageDecision(
                     uid="101",
                     subject="Weekend sale",
                     sender="deals@example.com",
                     date="Thu, 14 May 2026 10:00:00 +0000",
-                    preview="Huge discount inside",
-                    score=3,
+                    snippet="Huge discount inside",
+                    labels=("CATEGORY_PROMOTIONS",),
+                    is_unread=False,
+                    decision="trash_candidate",
                     reasons=("Matched keywords: sale",),
                 ),
             ),
@@ -33,14 +35,14 @@ class ReviewPlanTests(unittest.TestCase):
 
         self.assertTrue(validate_review_plan(saved))
         self.assertEqual(reloaded.confirmation_token, saved.confirmation_token)
-        self.assertEqual(reloaded.delete_candidates[0].uid, "101")
+        self.assertEqual(reloaded.trash_candidates[0].uid, "101")
 
     def test_validate_review_plan_rejects_tampering(self) -> None:
         plan = ReviewPlan(
             generated_at="2026-05-14T10:00:00Z",
             mailbox="INBOX",
             scanned_count=1,
-            delete_candidates=(),
+            decisions=(),
             confirmation_token="abc123",
         )
 
@@ -50,4 +52,3 @@ class ReviewPlanTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

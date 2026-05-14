@@ -32,20 +32,25 @@ def validate_review_plan(plan: ReviewPlan) -> bool:
 
 
 def format_review_plan(plan: ReviewPlan) -> str:
+    keep_count = sum(1 for decision in plan.decisions if decision.decision == "keep")
+    review_count = sum(1 for decision in plan.decisions if decision.decision == "review")
     lines = [
         f"Generated: {plan.generated_at}",
         f"Mailbox: {plan.mailbox}",
         f"Scanned messages: {plan.scanned_count}",
-        f"Delete candidates: {len(plan.delete_candidates)}",
+        f"Keep decisions: {keep_count}",
+        f"Review decisions: {review_count}",
+        f"Trash candidates: {len(plan.trash_candidates)}",
         f"Confirmation token: {plan.confirmation_token or '(missing)'}",
     ]
-    if plan.delete_candidates:
+    if plan.decisions:
         lines.append("")
-        lines.append("Candidates:")
-        for candidate in plan.delete_candidates:
+        lines.append("Decisions:")
+        for candidate in plan.decisions:
+            labels = ", ".join(candidate.labels) if candidate.labels else "(none)"
             lines.append(
-                f"- UID {candidate.uid}: {candidate.subject} | {candidate.sender} "
-                f"| score={candidate.score} | reasons={', '.join(candidate.reasons)}"
+                f"- [{candidate.decision}] UID {candidate.uid}: {candidate.subject} "
+                f"| {candidate.sender} | unread={'yes' if candidate.is_unread else 'no'} "
+                f"| labels={labels} | reasons={', '.join(candidate.reasons)}"
             )
     return "\n".join(lines)
-

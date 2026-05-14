@@ -1,14 +1,15 @@
 # Email Triage Agent
 
-A practical MVP for reviewing potentially irrelevant emails before any destructive action is taken.
+A practical Gmail-focused triage agent for reviewing potentially irrelevant emails before any destructive action is taken.
 
 ## Features
 
-- Connects to an IMAP mailbox using environment variables
-- Scores likely low-value email (newsletters, promos, automated mail)
-- Generates a review plan instead of deleting immediately
-- Requires an explicit confirmation token before deletion
-- Uses only the Python standard library
+- Connects to Gmail using OAuth environment variables only
+- Fetches the latest N messages and normalizes sender, subject, snippet, labels, unread state, and date
+- Classifies each message as `keep`, `review`, or `trash_candidate` with explicit reasons
+- Protects unread mail and sender/domain allowlists by default
+- Generates a local review plan before any mailbox changes
+- Uses dry-run by default and moves messages to Gmail trash instead of permanently deleting them
 
 ## Project structure
 
@@ -28,20 +29,48 @@ A practical MVP for reviewing potentially irrelevant emails before any destructi
 └── tests/
 ```
 
-## Configuration
+## Gmail OAuth setup
 
 Copy `.env.example` to `.env` or export the variables in your shell.
 
+1. In Google Cloud, create or reuse a project and enable the **Gmail API**.
+2. Configure an OAuth consent screen for your account.
+3. Create an **OAuth client ID** for a desktop app.
+4. Export the client ID and client secret:
+
+   ```bash
+   export EMAIL_TRIAGE_GMAIL_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+   export EMAIL_TRIAGE_GMAIL_CLIENT_SECRET=your-google-oauth-client-secret
+   ```
+
+5. Run the local OAuth helper to generate a refresh token:
+
+   ```bash
+   PYTHONPATH=src python -m email_triage_agent gmail-auth
+   ```
+
+6. Add the printed refresh token to your shell or `.env`:
+
+   ```bash
+   export EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN=your-refresh-token
+   ```
+
+All OAuth values are supplied through environment variables only. Do not hardcode credentials into the repository.
+
+## Configuration
+
 | Variable | Required | Description |
 | --- | --- | --- |
-| `EMAIL_TRIAGE_IMAP_HOST` | Yes | IMAP server hostname |
-| `EMAIL_TRIAGE_IMAP_PORT` | No | IMAP SSL port, defaults to `993` |
-| `EMAIL_TRIAGE_EMAIL_ADDRESS` | Yes | Mailbox username/login |
-| `EMAIL_TRIAGE_EMAIL_PASSWORD` | Yes | App password or mailbox token |
-| `EMAIL_TRIAGE_MAILBOX` | No | Mailbox/folder to scan, defaults to `INBOX` |
-| `EMAIL_TRIAGE_MAX_MESSAGES` | No | Number of recent messages to inspect, defaults to `50` |
+| `EMAIL_TRIAGE_GMAIL_CLIENT_ID` | Yes | Google OAuth client ID for a desktop app |
+| `EMAIL_TRIAGE_GMAIL_CLIENT_SECRET` | Yes | Google OAuth client secret |
+| `EMAIL_TRIAGE_GMAIL_REFRESH_TOKEN` | Yes for `triage`/`apply-review` | Refresh token returned by `gmail-auth` |
+| `EMAIL_TRIAGE_MAILBOX` | No | Gmail label to scan, defaults to `INBOX` |
+| `EMAIL_TRIAGE_MAX_MESSAGES` | No | Maximum number of recent messages to inspect, defaults to `50` |
+| `EMAIL_TRIAGE_ALLOWLIST_SENDERS` | No | Comma-separated sender email addresses that should always be kept |
+| `EMAIL_TRIAGE_ALLOWLIST_DOMAINS` | No | Comma-separated sender domains that should always be kept |
+| `EMAIL_TRIAGE_PROTECT_UNREAD` | No | Protect unread messages from cleanup, defaults to `true` |
 | `EMAIL_TRIAGE_IRRELEVANT_SENDERS` | No | Comma-separated sender rules to strongly down-rank |
-| `EMAIL_TRIAGE_IRRELEVANT_KEYWORDS` | No | Comma-separated subject/body keywords to down-rank |
+| `EMAIL_TRIAGE_IRRELEVANT_KEYWORDS` | No | Comma-separated subject/snippet keywords to down-rank |
 
 ## Quick start
 
@@ -59,28 +88,34 @@ Export the variables from `.env` in your shell, then run:
 PYTHONPATH=src python -m email_triage_agent triage
 ```
 
-That command creates a JSON review plan under `review-plans/`. Review it locally:
+That command fetches the latest Gmail messages for the configured label and creates a JSON review plan under `review-plans/`. Each decision includes a reason and is classified as `keep`, `review`, or `trash_candidate`.
+
+Review it locally:
 
 ```bash
 PYTHONPATH=src python -m email_triage_agent show-plan --plan-path review-plans/review-plan-YYYYMMDDTHHMMSSZ.json
 ```
 
-Only after reviewing the plan should you apply it:
+Only after reviewing the plan should you apply it. `apply-review` is a dry-run unless you also pass `--apply`:
 
 ```bash
 PYTHONPATH=src python -m email_triage_agent apply-review \
   --plan-path review-plans/review-plan-YYYYMMDDTHHMMSSZ.json \
   --confirm-token <token-from-reviewed-plan> \
-  --confirm-delete
+  --confirm-trash \
+  --apply
 ```
 
 ## Safety model
 
 - No hardcoded credentials or secrets
-- IMAP access is read-only during triage
-- Deletion is a separate command
-- Deletion requires both the saved review plan and its confirmation token
+- Triaging only reads Gmail metadata and snippets
+- Unread messages are protected by default
+- Allowlisted senders and domains are protected by default
+- Cleanup is a separate command and defaults to dry-run
+- Cleanup requires both the saved review plan and its confirmation token
 - The review token is recomputed from plan contents to detect tampering
+- Cleanup moves messages to Gmail trash and never permanently deletes them
 
 ## Running tests
 
