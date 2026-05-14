@@ -36,7 +36,7 @@ class EmailTriageConfig:
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> "EmailTriageConfig":
-        env = environ or os.environ
+        env = os.environ if environ is None else environ
         required = (
             "EMAIL_TRIAGE_IMAP_HOST",
             "EMAIL_TRIAGE_EMAIL_ADDRESS",
@@ -63,4 +63,3 @@ class EmailTriageConfig:
             irrelevant_senders=_parse_csv(env.get("EMAIL_TRIAGE_IRRELEVANT_SENDERS")),
             irrelevant_keywords=_parse_csv(env.get("EMAIL_TRIAGE_IRRELEVANT_KEYWORDS")),
         )
-
